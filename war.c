@@ -1,5 +1,5 @@
 /*
-        Nível Novato: Cadastro Inicial dos Territórios
+        Nível Aventureiro
 
     Objetivo
 
@@ -28,77 +28,170 @@ O usuário digita o nome do território, o corpo do exército dominante e o núm
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-//Configuracoes de Contrantes
-#define MAX_TERRITORIO 5
-#define TAM_STRING_NOME 30
-#define TAM_STRING_COR 10
+#define MAX_TERR 5
+#define TAM_NOME 40
+#define TAM_COR 20
 
-//Definindo a estrutula Struct
-struct TERRITORIO {
-    char nome[TAM_STRING_NOME];
-    char cor[TAM_STRING_COR];
-    int num_tropas;
-};
+// Estrutura do território
+typedef struct {
+    char nome[TAM_NOME];
+    char cor[TAM_COR];
+    int tropas;
+} Territorio;
 
-// limpar buffer de entrada para evitar erros de fgets
-void LimpaBuffer(){
+// Limpeza de buffer
+void limpaBuffer() {
     int c;
-    while ((c = getchar())!= '\n' && c != EOF);   
+    while ((c = getchar()) != '\n' && c != EOF);
 }
 
-// funcao principal
-int main(){
+// Cadastro dos 5 territórios
+void cadastrarTerritorios(Territorio mapa[], int qtd) {
+    for (int i = 0; i < qtd; i++) {
+        printf("\n--- Cadastrando Territorio %d ---\n", i + 1);
 
-    // difinindo o tamanho do territorio || contador territorio
-    struct TERRITORIO biblioteca[MAX_TERRITORIO];
-    int total_Territorios = 0;
-    
+        printf("Nome do Territorio: ");
+        fgets(mapa[i].nome, TAM_NOME, stdin);
+        mapa[i].nome[strcspn(mapa[i].nome, "\n")] = '\0';
 
-    //mensagem de inicializacao
-    printf("=====================================\n");
-    printf("     SEJA BEM-VINDO AO JOGO WAR\n");
+        printf("Cor do Exercito: ");
+        fgets(mapa[i].cor, TAM_COR, stdin);
+        mapa[i].cor[strcspn(mapa[i].cor, "\n")] = '\0';
+
+        printf("Numero de Tropas: ");
+        while (scanf("%d", &mapa[i].tropas) != 1) {
+            printf("Entrada inválida. Digite um número: ");
+            limpaBuffer();
+        }
+        limpaBuffer();
+    }
+}
+
+// Mostrar estado atual do mapa
+void mostrarMapa(Territorio mapa[], int qtd) {
+    printf("\n=====================================\n");
+    printf("       MAPA DO MUNDO - ESTADO ATUAL\n");
     printf("=====================================\n\n");
-    printf("    Cadastraremos 5 territorios\n\n");
 
-    //cadastros de territorios
-    for ( int i = 0; i < MAX_TERRITORIO; i++){
-        printf("=====================================\n");
-        printf("   --- Cadastro territorio nº %d  ---   \n", i+1);
-        printf("Nome do territorio: ");
-        fgets(biblioteca[total_Territorios].nome,TAM_STRING_NOME,stdin);
+    for (int i = 0; i < qtd; i++) {
+        printf("%d. %s (Exército %s, Tropas: %d)\n",
+            i + 1, mapa[i].nome, mapa[i].cor, mapa[i].tropas);
+    }
+    printf("\n");
+}
 
-        printf("Cor do exercito: ");
-        fgets(biblioteca[total_Territorios].cor,TAM_STRING_COR,stdin);
-
-        biblioteca[total_Territorios].nome[strcspn(biblioteca[total_Territorios].nome, "\n")] = '\0';
-        biblioteca[total_Territorios].cor[strcspn(biblioteca[total_Territorios].cor, "\n")] = '\0';
-
-
-        printf("Quantidade de tropas: ");
-        scanf("%d", &biblioteca[total_Territorios].num_tropas);
-        printf("=====================================\n");
-        printf("\n");
-
-        //limpeza de buffer para evitar erros
-        LimpaBuffer();
-
-        //atribuicao para contagem
-        total_Territorios++;
+// Função de ataque com REGRAS DE CONQUISTA
+void atacar(Territorio *atacante, Territorio *defensor) {
+    if (atacante->tropas <= 1) {
+        printf("\nO atacante precisa de mais de 1 tropa para atacar!\n");
+        return;
     }
 
-    //para organizacao do condigo e informar o usuario
-    printf("\n"); 
-    printf("    Cadastro realizado com sucesso!\n");
-    printf("---- MAPA DO MUNDO LISTAGEM ATUAL ----\n\n\n");
+    int dado_atk = (rand() % 6) + 1;
+    int dado_def = (rand() % 6) + 1;
 
-    for( int i = 0; i < total_Territorios; i++){
+    printf("\n--- RESULTADO DA BATALHA ---\n");
+    printf("Atacante %s rolou: %d\n", atacante->nome, dado_atk);
+    printf("Defensor %s rolou: %d\n", defensor->nome, dado_def);
 
-        printf("=====Territorio nº %d =====\n", i+1);
-        printf("Nome: %s\n",biblioteca[i].nome);
-        printf("Cor do exercito: %s\n",biblioteca[i].cor);
-        printf("Quantidade de tropas: %d\n",biblioteca[i].num_tropas);
-        printf("===========================\n");
-        printf("\n");
+    if (dado_atk > dado_def) {
+        defensor->tropas -= 1;
+        printf(">>> Ataque VENCEU! O defensor perdeu 1 tropa.\n");
+
+        // CONQUISTA DO TERRITÓRIO
+        if (defensor->tropas == 0) {
+            printf("\n>>> O TERRITÓRIO %s FOI CONQUISTADO! <<<\n", defensor->nome);
+
+            strcpy(defensor->cor, atacante->cor); // muda dono
+
+            atacante->tropas -= 1;  // atacante envia 1 tropa obrigatória
+            defensor->tropas = 1;   // território recém-conquistado fica com 1 tropa
+
+            printf("O atacante moveu 1 tropa para ocupar o território conquistado!\n");
+        }
+
+    } else {
+        atacante->tropas -= 1;
+        printf(">>> Defesa segurou! O atacante perdeu 1 tropa.\n");
     }
+}
+
+int main(void) {
+    srand((unsigned)time(NULL));
+
+    int qtd = MAX_TERR;
+
+    // Agora usando calloc para alocar memória para os territórios
+    Territorio *mapa = (Territorio*) calloc(qtd, sizeof(Territorio));
+    if (mapa == NULL) {
+        printf("Erro ao alocar memória!\n");
+        return 1;
+    }
+
+    printf("Cadastro inicial de %d territórios (1 a %d):\n", qtd, qtd);
+    cadastrarTerritorios(mapa, qtd);
+
+    mostrarMapa(mapa, qtd);
+
+    while (1) {
+        printf("--- FASE DE ATAQUE ---\n");
+        printf("Escolha o territorio ATACANTE (1 a %d ou 0 para sair): ", qtd);
+
+        int atk, def;
+        if (scanf("%d", &atk) != 1) {
+            printf("Entrada inválida!\n");
+            limpaBuffer();
+            continue;
+        }
+
+        if (atk == 0) break;
+
+        if (atk < 1 || atk > qtd) {
+            printf("ID inválido! Escolha entre 1 e %d.\n", qtd);
+            limpaBuffer();
+            continue;
+        }
+
+        printf("Escolha o territorio DEFENSOR (1 a %d): ", qtd);
+        if (scanf("%d", &def) != 1) {
+            printf("Entrada inválida!\n");
+            limpaBuffer();
+            continue;
+        }
+        limpaBuffer();
+
+        if (def < 1 || def > qtd) {
+            printf("ID inválido! Escolha entre 1 e %d.\n", qtd);
+            continue;
+        }
+
+        if (atk == def) {
+            printf("Um territorio não pode atacar ele mesmo!\n");
+            continue;
+        }
+
+        int A = atk - 1;
+        int D = def - 1;
+
+        if (strcmp(mapa[A].cor, mapa[D].cor) == 0) {
+            printf("Você NÃO pode atacar territórios da mesma cor!\n");
+            continue;
+        }
+
+        atacar(&mapa[A], &mapa[D]);
+
+        printf("\nPressione ENTER para continuar...");
+        getchar();
+
+        mostrarMapa(mapa, qtd);
+    }
+
+    free(mapa);   // libera memória
+    printf("\nJogo encerrado! memória liberada! Obrigado por jogar.\n");
+
+   
+
+    return 0;
 }
